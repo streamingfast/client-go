@@ -15,6 +15,10 @@ import (
 	"go.uber.org/zap"
 )
 
+// Used in testing to override time based cases and other constants
+var expirationThreshold = 30 * time.Second
+var now = time.Now
+
 // Ensures that interface is respected by our implementation
 var _ APITokenStore = (*InMemoryAPITokenStore)(nil)
 var _ APITokenStore = (*FileAPITokenStore)(nil)
@@ -23,6 +27,14 @@ var _ APITokenStore = (*OnDiskApiTokenStore)(nil)
 type APITokenInfo struct {
 	Token     string
 	ExpiresAt time.Time
+}
+
+func (t *APITokenInfo) IsAboutToExpiry() bool {
+	if t == nil {
+		return true
+	}
+
+	return now().Add(expirationThreshold).After(t.ExpiresAt)
 }
 
 type APITokenStore interface {

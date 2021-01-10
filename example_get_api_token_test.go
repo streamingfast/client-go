@@ -20,5 +20,4 @@ func ExampleGetAPITokenInfo() {
 	}
 
 	fmt.Println(tokenInfo.Token, tokenInfo.ExpiresAt.Format(time.RFC3339))
-	// Output: ""
 }

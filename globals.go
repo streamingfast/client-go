@@ -18,7 +18,7 @@ func GetAPITokenInfo(ctx context.Context) (*APITokenInfo, error) {
 
 func getGlobalClient(from string) Client {
 	if globalClient == nil {
-		panic(fmt.Errorf("execution of %s requires the global client instance to be set but it was not, ensure you call 'dfuse.' prior %s", from, from))
+		panic(fmt.Errorf("execution of %s requires the global client instance to be set but it was not, ensure you call 'dfuse.RegisterGlobal(...)' prior calling %s", from, from))
 	}
 
 	return globalClient

@@ -77,10 +77,23 @@ func (c *client) GetAPITokenInfo(ctx context.Context) (*APITokenInfo, error) {
 		return nil, fmt.Errorf("api token store get: %w", err)
 	}
 
-	if tokenInfo != nil {
+	if tokenInfo != nil && !tokenInfo.IsAboutToExpiry() {
 		return tokenInfo, nil
 	}
 
+	tokenInfo, err = c.fetchToken(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.apiTokenStore.Set(ctx, tokenInfo); err != nil {
+		return nil, fmt.Errorf("api token store set: %w", err)
+	}
+
+	return tokenInfo, nil
+}
+
+func (c *client) fetchToken(ctx context.Context) (*APITokenInfo, error) {
 	entity := map[string]interface{}{"api_key": c.apiKey}
 	body, _ := json.Marshal(entity)
 
@@ -109,12 +122,7 @@ func (c *client) GetAPITokenInfo(ctx context.Context) (*APITokenInfo, error) {
 		return nil, err
 	}
 
-	tokenInfo = &APITokenInfo{Token: answer.Token, ExpiresAt: time.Time(answer.ExpiresAt)}
-	if err := c.apiTokenStore.Set(ctx, tokenInfo); err != nil {
-		return nil, fmt.Errorf("api token store set: %w", err)
-	}
-
-	return tokenInfo, nil
+	return &APITokenInfo{Token: answer.Token, ExpiresAt: time.Time(answer.ExpiresAt)}, nil
 }
 
 func consumeBodyAsJSON(response *http.Response, v interface{}) error {
