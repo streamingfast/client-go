@@ -22,7 +22,7 @@ var now = time.Now
 // Ensures that interface is respected by our implementation
 var _ APITokenStore = (*InMemoryAPITokenStore)(nil)
 var _ APITokenStore = (*FileAPITokenStore)(nil)
-var _ APITokenStore = (*OnDiskApiTokenStore)(nil)
+var _ APITokenStore = (*OnDiskAPITokenStore)(nil)
 
 type APITokenInfo struct {
 	Token     string
@@ -42,10 +42,6 @@ type APITokenStore interface {
 	Set(ctx context.Context, token *APITokenInfo) error
 }
 
-func NewInMemoryAPITokenStore() *InMemoryAPITokenStore {
-	return &InMemoryAPITokenStore{}
-}
-
 // InMemoryAPITokenStore simply keeps the token in memory and serves
 // it from there.
 //
@@ -58,6 +54,10 @@ type InMemoryAPITokenStore struct {
 	active atomic.Value
 }
 
+func NewInMemoryAPITokenStore() *InMemoryAPITokenStore {
+	return &InMemoryAPITokenStore{}
+}
+
 func (s *InMemoryAPITokenStore) Get(ctx context.Context) (*APITokenInfo, error) {
 	return s.active.Load().(*APITokenInfo), nil
 }
@@ -67,17 +67,19 @@ func (s *InMemoryAPITokenStore) Set(ctx context.Context, token *APITokenInfo) er
 	return nil
 }
 
-func NewFileAPITokenStore(filePath string) *FileAPITokenStore {
-	zlog.Info("creating file api token store", zap.String("file_path", filePath))
-	return &FileAPITokenStore{filePath: filePath}
-}
-
 // FileAPITokenStore saves the active token as a JSON string in plain text in
 // the given file.
 type FileAPITokenStore struct {
 	active   *APITokenInfo
 	filePath string
 	lock     sync.RWMutex
+}
+
+// NewFileAPITokenStore creates a new FileAPITokenStore instance using the given
+// `filePath`.
+func NewFileAPITokenStore(filePath string) *FileAPITokenStore {
+	zlog.Info("creating file api token store", zap.String("file_path", filePath))
+	return &FileAPITokenStore{filePath: filePath}
 }
 
 func (s *FileAPITokenStore) Get(ctx context.Context) (*APITokenInfo, error) {
@@ -138,12 +140,15 @@ func (s *FileAPITokenStore) Set(ctx context.Context, token *APITokenInfo) error 
 	return nil
 }
 
-type tokenInfo struct {
-	Token     string        `json:"token"`
-	ExpiresAt unixTimestamp `json:"expires_at"`
+// OnDiskAPITokenStore saves the active token as a JSON string in a file located
+// at `~/.dfuse/<sha256-api-key>/token.json`.
+//
+// The directory structure is created when it does not exists.
+type OnDiskAPITokenStore struct {
+	FileAPITokenStore
 }
 
-func NewOnDiskApiTokenStore(apiKey string) *OnDiskApiTokenStore {
+func NewOnDiskAPITokenStore(apiKey string) *OnDiskAPITokenStore {
 	homedir, err := os.UserHomeDir()
 	if err != nil {
 		panic(fmt.Errorf("unable to determine home directory, use 'NewFileAPITokenStore' and specify the path manually"))
@@ -151,17 +156,9 @@ func NewOnDiskApiTokenStore(apiKey string) *OnDiskApiTokenStore {
 	sum := shasum256StringToHex(apiKey)
 
 	zlog.Info("creating on disk api token store", zap.String("home", homedir), zap.String("sum", sum))
-	return &OnDiskApiTokenStore{FileAPITokenStore: FileAPITokenStore{
+	return &OnDiskAPITokenStore{FileAPITokenStore: FileAPITokenStore{
 		filePath: filepath.Join(homedir, ".dfuse", sum, "token.json"),
 	}}
-}
-
-// OnDiskApiTokenStore saves the active token as a JSON string in a file located
-// at `~/.dfuse/<sha256-api-key>/token.json`.
-//
-// The directory structure is created when it does not exists.
-type OnDiskApiTokenStore struct {
-	FileAPITokenStore
 }
 
 func shasum256StringToHex(in string) string {
@@ -169,4 +166,10 @@ func shasum256StringToHex(in string) string {
 	sum.Write([]byte(in))
 
 	return hex.EncodeToString(sum.Sum(nil))
+}
+
+// tokenInfo represents the on-disk serialization format used
+type tokenInfo struct {
+	Token     string        `json:"token"`
+	ExpiresAt unixTimestamp `json:"expires_at"`
 }

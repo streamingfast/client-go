@@ -154,7 +154,7 @@ type clientOptions struct {
 
 func (o *clientOptions) fillDefaults(apiKey string) {
 	if o.apiTokenStore == nil {
-		o.apiTokenStore = NewOnDiskApiTokenStore(apiKey)
+		o.apiTokenStore = NewOnDiskAPITokenStore(apiKey)
 	}
 
 	if o.authURL == "" {
@@ -170,16 +170,4 @@ type clientOptionFunc func(o *clientOptions)
 
 func (f clientOptionFunc) apply(o *clientOptions) {
 	f(o)
-}
-
-type unixTimestamp time.Time
-
-func (t *unixTimestamp) UnmarshalJSON(data []byte) error {
-	var timestamp int64
-	if err := json.Unmarshal(data, &timestamp); err != nil {
-		return fmt.Errorf("invalid timestamp: %w", err)
-	}
-
-	*t = unixTimestamp(time.Unix(int64(timestamp), 0))
-	return nil
 }
