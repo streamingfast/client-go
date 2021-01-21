@@ -10,11 +10,12 @@ import (
 )
 
 func ExampleGetAPITokenInfo() {
-	if err := dfuse.RegisterGlobal("testnet.eos.dfuse.io", os.Getenv("DFUSE_API_KEY")); err != nil {
-		panic(fmt.Errorf("register global dfuse client: %w", err))
+	client, err := dfuse.NewClient("testnet.eos.dfuse.io", os.Getenv("DFUSE_API_KEY"))
+	if err != nil {
+		panic(fmt.Errorf("new dfuse client: %w", err))
 	}
 
-	tokenInfo, err := dfuse.GetAPITokenInfo(context.Background())
+	tokenInfo, err := client.GetAPITokenInfo(context.Background())
 	if err != nil {
 		panic(fmt.Errorf("get api token info: %w", err))
 	}

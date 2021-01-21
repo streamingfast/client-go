@@ -10,9 +10,12 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"sync"
 	"time"
 
+	pbgraphql "github.com/dfuse-io/client-go/pb/dfuse/graphql/v1"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 func WithAPITokenStore(store APITokenStore) ClientOption {
@@ -23,12 +26,20 @@ func WithAuthURL(authURL string) ClientOption {
 	return clientOptionFunc(func(o *clientOptions) { o.authURL = authURL })
 }
 
-func WithInsecure() ClientOption {
-	return clientOptionFunc(func(o *clientOptions) { o.insecure = true })
+func WithPlainText() ClientOption {
+	return clientOptionFunc(func(o *clientOptions) { o.plainText = true })
+}
+
+// WithoutAuthentication disables API token retrieval and management assuming the
+// endpoint connecting to does not require authentication.
+func WithoutAuthentication() ClientOption {
+	return clientOptionFunc(func(o *clientOptions) { o.unauthenticated = true })
 }
 
 type Client interface {
 	GetAPITokenInfo(ctx context.Context) (*APITokenInfo, error)
+
+	GraphQLQuery(ctx context.Context, document string, opts ...GraphQLOption) (*pbgraphql.Response, error)
 }
 
 func NewClient(network string, apiKey string, opts ...ClientOption) (Client, error) {
@@ -43,6 +54,10 @@ func NewClient(network string, apiKey string, opts ...ClientOption) (Client, err
 	}
 	options.fillDefaults(apiKey)
 
+	if apiKey == "" && !options.unauthenticated {
+		return nil, errors.New(`invalid "apiKey" argument, must be set (if connecting to an unauthenticated instance, use 'WithoutAuthentication' option to allow and empty "apiKey" argument)`)
+	}
+
 	authURL, err := url.Parse(options.authURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid auth URL %q: %w", options.authURL, err)
@@ -50,20 +65,43 @@ func NewClient(network string, apiKey string, opts ...ClientOption) (Client, err
 
 	authURL.Path = path.Join(authURL.Path, "issue")
 
+	grpcAddr := network + ":443"
+	var grpcDialOptions []grpc.DialOption
+
+	if options.plainText {
+		grpcAddr = network + ":9000"
+		grpcDialOptions = append(grpcDialOptions, insecureDialOption)
+	} else {
+		grpcDialOptions = append(grpcDialOptions, tlsClientDialOption)
+	}
+
 	return &client{
-		apiKey:        apiKey,
-		apiTokenStore: options.apiTokenStore,
-		authClient:    &http.Client{Timeout: 10 * time.Second},
-		authIssueURL:  authURL.String(),
+		apiKey:          apiKey,
+		apiTokenStore:   options.apiTokenStore,
+		authenticated:   !options.unauthenticated,
+		authClient:      &http.Client{Timeout: 10 * time.Second},
+		authIssueURL:    authURL.String(),
+		grpcAddr:        grpcAddr,
+		grpcDialOptions: grpcDialOptions,
 	}, nil
 }
+
+// compile time check to ensure that *client struct implements Client interface
+var _ Client = (*client)(nil)
 
 type client struct {
 	apiKey        string
 	apiTokenStore APITokenStore
 
-	authClient   *http.Client
-	authIssueURL string
+	authClient    *http.Client
+	authIssueURL  string
+	authenticated bool
+
+	grpcAddr          string
+	grpcDialOptions   []grpc.DialOption
+	grpcConn          *grpc.ClientConn
+	grpcGraphqlClient pbgraphql.GraphQLClient
+	grpcLock          sync.Mutex
 }
 
 type issueTokenResponse struct {
@@ -147,9 +185,10 @@ func consumeBodyToString(response *http.Response) (string, error) {
 }
 
 type clientOptions struct {
-	apiTokenStore APITokenStore
-	authURL       string
-	insecure      bool
+	apiTokenStore   APITokenStore
+	authURL         string
+	plainText       bool
+	unauthenticated bool
 }
 
 func (o *clientOptions) fillDefaults(apiKey string) {
