@@ -15,20 +15,22 @@ import (
 func TestAPITokenInfo_IsAboutToExpire(t *testing.T) {
 	tests := []struct {
 		name      string
-		now       string
-		expiresAt string
+		now       time.Time
+		expiresAt time.Time
 		expected  bool
 	}{
-		{"expires in a day", "2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z", false},
-		{"expires just after threshold of 30s", "2020-01-01T00:00:00Z", "2020-01-01T00:00:31Z", false},
-		{"expires right on threshold of 30s", "2020-01-01T00:00:00Z", "2020-01-01T00:00:30Z", false},
-		{"expired just before threshold of 30s", "2020-01-01T00:00:00Z", "2020-01-01T00:00:29Z", true},
+		{"expires in a day", utcTime(t, "2020-01-01T00:00:00Z"), utcTime(t, "2020-01-02T00:00:00Z"), false},
+		{"expires just after threshold of 30s", utcTime(t, "2020-01-01T00:00:00Z"), utcTime(t, "2020-01-01T00:00:31Z"), false},
+		{"expires right on threshold of 30s", utcTime(t, "2020-01-01T00:00:00Z"), utcTime(t, "2020-01-01T00:00:30Z"), false},
+		{"expired just before threshold of 30s", utcTime(t, "2020-01-01T00:00:00Z"), utcTime(t, "2020-01-01T00:00:29Z"), true},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			now = func() time.Time { return utcTime(t, test.now) }
-			token := &APITokenInfo{Token: "a.b.c", ExpiresAt: utcTime(t, test.expiresAt)}
+			now = func() time.Time { return test.now }
+			defer func() { now = time.Now }()
+
+			token := &APITokenInfo{Token: "a.b.c", ExpiresAt: test.expiresAt}
 
 			assert.Equal(t, test.expected, token.IsAboutToExpiry())
 		})

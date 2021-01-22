@@ -1,5 +1,5 @@
-query {
-  block(num: 10) {
+query ($blockNum: Uint32!) {
+  block(num: $blockNum) {
     id
     num
     dposLIBNum

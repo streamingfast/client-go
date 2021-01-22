@@ -40,6 +40,7 @@ type Client interface {
 	GetAPITokenInfo(ctx context.Context) (*APITokenInfo, error)
 
 	GraphQLQuery(ctx context.Context, document string, opts ...GraphQLOption) (*pbgraphql.Response, error)
+	GraphQLSubscription(ctx context.Context, document string, opts ...GraphQLOption) (GraphQLStream, error)
 }
 
 func NewClient(network string, apiKey string, opts ...ClientOption) (Client, error) {
@@ -116,14 +117,20 @@ func (c *client) GetAPITokenInfo(ctx context.Context) (*APITokenInfo, error) {
 	}
 
 	if tokenInfo != nil && !tokenInfo.IsAboutToExpiry() {
+		if traceEnabled {
+			zlog.Debug("token info retrieved from store is set and not about to expiry, returning it", zap.Object("token_info", tokenInfo))
+		}
+
 		return tokenInfo, nil
 	}
 
+	zlog.Debug("token is either not set or about to expiry, fetching a new one from auth URL", zap.Object("token_info", tokenInfo), zap.String("auth_issue_url", c.authIssueURL))
 	tokenInfo, err = c.fetchToken(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	zlog.Debug("token retrieved from remote storage, setting it in api token store", zap.Object("token_info", tokenInfo))
 	if err := c.apiTokenStore.Set(ctx, tokenInfo); err != nil {
 		return nil, fmt.Errorf("api token store set: %w", err)
 	}

@@ -9,9 +9,19 @@ import (
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/oauth"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
+type GraphQLStream interface {
+	pbgraphql.GraphQL_ExecuteClient
+}
+
 func (c *client) GraphQLQuery(ctx context.Context, document string, opts ...GraphQLOption) (*pbgraphql.Response, error) {
+	options := graphqlOptions{}
+	for _, opt := range opts {
+		opt.apply(&options)
+	}
+
 	graphql, err := c.getGraphqlClient()
 	if err != nil {
 		return nil, fmt.Errorf("get graphql client: %w", err)
@@ -29,10 +39,18 @@ func (c *client) GraphQLQuery(ctx context.Context, document string, opts ...Grap
 		)
 	}
 
+	request := &pbgraphql.Request{Query: document}
+	if len(options.variables) > 0 {
+		request.Variables, err = structpb.NewStruct(options.variables)
+		if err != nil {
+			return nil, fmt.Errorf("invalid variables: %w", err)
+		}
+	}
+
 	subCtx, cancelRequest := context.WithCancel(ctx)
 	defer cancelRequest()
 
-	stream, err := graphql.Execute(subCtx, &pbgraphql.Request{Query: document}, callOptions...)
+	stream, err := graphql.Execute(subCtx, request, callOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("graphql execute: %w", err)
 	}
@@ -43,6 +61,14 @@ func (c *client) GraphQLQuery(ctx context.Context, document string, opts ...Grap
 	}
 
 	return response, nil
+}
+
+type graphqlStream struct {
+	pbgraphql.GraphQL_ExecuteClient
+}
+
+func (c *client) GraphQLSubscription(ctx context.Context, document string, opts ...GraphQLOption) (GraphQLStream, error) {
+	return nil, nil
 }
 
 func (c *client) getGraphqlClient() (pbgraphql.GraphQLClient, error) {
@@ -94,7 +120,7 @@ func (d GraphQLFileDocument) Load(ctx context.Context) (string, error) {
 }
 
 type GraphQLOption interface {
-	apply()
+	apply(o *graphqlOptions)
 }
 
 // GraphQLVariables option to pass

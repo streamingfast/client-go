@@ -22,6 +22,7 @@ function main() {
   set -e
   pushd "$ROOT/pb" &> /dev/null
 
+  # **Imporant** Requires proto-gen-go >= 1.20 && protoc-gen-go-grpc >= 1.1.0 (So the second majour revision of Go protocol buffer, a.k.a APIv2)
   generate "dfuse/graphql/v1/graphql.proto"
 
   echo "generate.sh - `date` - `whoami`" > $ROOT/pb/last_generate.txt
@@ -38,7 +39,10 @@ function generate() {
     fi
 
     for file in "$@"; do
-      protoc -I$PROTO $base$file --go_out=plugins=grpc,paths=source_relative:.
+      protoc -I$PROTO \
+        --go_out=. --go_opt=paths=source_relative \
+        --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+         $base$file
     done
 }
 

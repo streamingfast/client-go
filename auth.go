@@ -13,6 +13,7 @@ import (
 
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // Used in testing to override time based cases and other constants
@@ -35,6 +36,18 @@ func (t *APITokenInfo) IsAboutToExpiry() bool {
 	}
 
 	return now().Add(expirationThreshold).After(t.ExpiresAt)
+}
+
+func (t *APITokenInfo) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
+	if t == nil {
+		encoder.AddString("token", "<nil>")
+		return nil
+	}
+
+	encoder.AddString("token", "<set>")
+	encoder.AddTime("expires_at", t.ExpiresAt)
+	encoder.AddBool("is_about_to_expiry", t.IsAboutToExpiry())
+	return nil
 }
 
 type APITokenStore interface {
@@ -94,9 +107,11 @@ func (s *FileAPITokenStore) Get(ctx context.Context) (*APITokenInfo, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
+	zlog.Debug("active token is not set, opening file", zap.String("file_path", s.filePath))
 	file, err := os.Open(s.filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
+			zlog.Debug("file token store does not exist")
 			return nil, nil
 		}
 
@@ -104,12 +119,14 @@ func (s *FileAPITokenStore) Get(ctx context.Context) (*APITokenInfo, error) {
 	}
 	defer file.Close()
 
+	zlog.Debug("decoding file api token store content")
 	tokenInfo := &tokenInfo{}
 	decoder := json.NewDecoder(file)
 	if err = decoder.Decode(tokenInfo); err != nil {
 		return nil, fmt.Errorf("read token file %q: %w", s.filePath, err)
 	}
 
+	zlog.Debug("file api token store decoded content is now active")
 	s.active = &APITokenInfo{Token: tokenInfo.Token, ExpiresAt: time.Time(tokenInfo.ExpiresAt)}
 	return s.active, nil
 }
