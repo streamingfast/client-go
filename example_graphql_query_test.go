@@ -23,5 +23,4 @@ func ExampleClient_GraphQLQuery() {
 	}
 
 	fmt.Println(response.Data, response.Errors)
-	// Out: test
 }

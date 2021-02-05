@@ -9,17 +9,20 @@ import (
 	dfuse "github.com/dfuse-io/client-go"
 )
 
-func ExampleClient_RawGraphQL() {
+func ExampleExperimentalClient_RawGraphQL() {
 	client, err := dfuse.NewClient("testnet.eos.dfuse.io", os.Getenv("DFUSE_API_KEY"))
 	if err != nil {
 		panic(fmt.Errorf("new dfuse client: %w", err))
 	}
 
+	// The experimental interface must be explicitely cast to, no backward compatibility layer for method in there
+	experimentalClient := client.(dfuse.ExperimentalClient)
+
 	document := graphqlDocumentFromFile("example_graphql_subscription.graphql")
-	stream, err := client.RawGraphQL(context.Background(), document, dfuse.GraphQLVariables{
+	stream, err := experimentalClient.RawGraphQL(context.Background(), document, dfuse.GraphQLVariables{
 		"query":  "-action:onblock",
 		"cursor": "",
-		"limit":  10,
+		"limit":  3,
 	})
 	if err != nil {
 		panic(fmt.Errorf("graphql subscription: %w", err))
@@ -38,5 +41,4 @@ func ExampleClient_RawGraphQL() {
 
 		fmt.Println(response.Data, response.Errors)
 	}
-	// Output:
 }

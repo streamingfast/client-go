@@ -65,7 +65,13 @@ type Client interface {
 
 	GraphQLQuery(ctx context.Context, document string, opts ...GraphQLOption) (*pbgraphql.Response, error)
 	GraphQLSubscription(ctx context.Context, document string, opts ...GraphQLOption) (GraphQLStream, error)
+}
 
+// ExperimentalClient is an interface implemented by the client you received when doing `NewClient` but the
+// method in there are **experimental**, the API could change or removed at any moment.
+//
+// There is not backward compatibility policy for those methods.
+type ExperimentalClient interface {
 	RawGraphQL(ctx context.Context, document string, opts ...GraphQLOption) (pbgraphql.GraphQL_ExecuteClient, error)
 }
 
@@ -145,13 +151,13 @@ func (c *client) GetAPITokenInfo(ctx context.Context) (*APITokenInfo, error) {
 
 	if tokenInfo != nil && !tokenInfo.IsAboutToExpire() {
 		if traceEnabled {
-			zlog.Debug("token info retrieved from store is set and not about to expiry, returning it", zap.Object("token_info", tokenInfo))
+			zlog.Debug("token info retrieved from store is set and not about to expire, returning it", zap.Object("token_info", tokenInfo))
 		}
 
 		return tokenInfo, nil
 	}
 
-	zlog.Debug("token is either not set or about to expiry, fetching a new one from auth URL", zap.Object("token_info", tokenInfo), zap.String("auth_issue_url", c.authIssueURL))
+	zlog.Debug("token is either not set or about to expire, fetching a new one from auth URL", zap.Object("token_info", tokenInfo), zap.String("auth_issue_url", c.authIssueURL))
 	tokenInfo, err = c.fetchToken(ctx)
 	if err != nil {
 		return nil, err

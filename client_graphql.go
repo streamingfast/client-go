@@ -73,7 +73,7 @@ func (c *client) GraphQLSubscription(ctx context.Context, document string, opts 
 		return nil, err
 	}
 
-	return graphqlStream{stream, c.logger, nil}, nil
+	return &graphqlStream{stream, c.logger, nil}, nil
 }
 
 type graphqlStream struct {
@@ -85,11 +85,11 @@ type graphqlStream struct {
 // LastErr returns that last error we seen in this stream. This special stream traps transient
 // errors and automatically reconnects ensure a never ending flow of data so the consumer of
 // client-go does not need to deal with this.
-func (s graphqlStream) LastErr() error {
+func (s *graphqlStream) LastErr() error {
 	return s.lastErr
 }
 
-func (s graphqlStream) Recv() (*pbgraphql.Response, error) {
+func (s *graphqlStream) Recv() (*pbgraphql.Response, error) {
 	if traceEnabled {
 		zlog.Debug("about to request to receive a graphql response from gRPC stream")
 	}
@@ -103,12 +103,19 @@ func (s graphqlStream) Recv() (*pbgraphql.Response, error) {
 		return response, nil
 	}
 
+	// It's unclear, but when the context of the stream is canceled, the `Recv` on the stream client
+	// returns io.EOF, if there is a context error, we must forward it here right away
+	ctxErr := s.Context().Err()
+	if ctxErr != nil {
+		zlog.Debug("graphql gRPC stream context has been canceled or timed out, returning its error right away", zap.Error(ctxErr))
+		return nil, ctxErr
+	}
+
 	if err == io.EOF {
 		zlog.Debug("graphql gRPC stream completed")
 		return nil, io.EOF
 	}
 
-	// FIXME: This doesn't work because the receiver of the call is non-pointer ... hmmm
 	s.lastErr = err
 	isTransient := s.isTransientError(err)
 	if !isTransient {
@@ -116,6 +123,9 @@ func (s graphqlStream) Recv() (*pbgraphql.Response, error) {
 		return nil, err
 	}
 
+	// FIXME: Once we have a correct enough group of unit tests, refactor this code as it's mostly
+	//        the same as the part above this comment expect for a few differences that arise when
+	//        running for the first time vs running as a "retry".
 	zlog.Debug("a graphql stream transient error occurs, re-trying until we succeed", zap.Error(err))
 	for {
 		response, err := s.GraphQL_ExecuteClient.Recv()
@@ -125,6 +135,14 @@ func (s graphqlStream) Recv() (*pbgraphql.Response, error) {
 			}
 
 			return response, nil
+		}
+
+		// It's unclear, but when the context of the stream is canceled, the `Recv` on the stream client
+		// returns io.EOF, if there is a context error, we must forward it here right away
+		ctxErr := s.Context().Err()
+		if ctxErr != nil {
+			zlog.Debug("graphql gRPC stream context has been canceled or timed out, returning its error right away", zap.Error(ctxErr))
+			return nil, ctxErr
 		}
 
 		if err == io.EOF {
@@ -144,7 +162,7 @@ func (s graphqlStream) Recv() (*pbgraphql.Response, error) {
 	}
 }
 
-func (s graphqlStream) isTransientError(err error) bool {
+func (s *graphqlStream) isTransientError(err error) bool {
 	switch status.Code(err) {
 	// Weird case where an error would have the OK code, warn & reconnect since we assume it's something wrong
 	case codes.OK:

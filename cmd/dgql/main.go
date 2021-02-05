@@ -104,7 +104,7 @@ func dgqlE(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	stream, err := client.RawGraphQL(cmd.Context(), config.Document, variables)
+	stream, err := client.GraphQLSubscription(cmd.Context(), config.Document, variables)
 	if err != nil {
 		return fmt.Errorf("unable to open dfuse GraphQL over gRPC stream: %w", err)
 	}
