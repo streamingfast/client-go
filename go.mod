@@ -1,6 +1,6 @@
 module github.com/dfuse-io/client-go
 
-go 1.15
+go 1.13
 
 require (
 	github.com/dfuse-io/logging v0.0.0-20210109005628-b97a57253f70
