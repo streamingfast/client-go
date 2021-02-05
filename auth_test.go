@@ -32,7 +32,7 @@ func TestAPITokenInfo_IsAboutToExpire(t *testing.T) {
 
 			token := &APITokenInfo{Token: "a.b.c", ExpiresAt: test.expiresAt}
 
-			assert.Equal(t, test.expected, token.IsAboutToExpiry())
+			assert.Equal(t, test.expected, token.IsAboutToExpire())
 		})
 	}
 }

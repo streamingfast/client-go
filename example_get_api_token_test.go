@@ -9,7 +9,7 @@ import (
 	dfuse "github.com/dfuse-io/client-go"
 )
 
-func ExampleGetAPITokenInfo() {
+func ExampleClient_GetAPITokenInfo() {
 	client, err := dfuse.NewClient("testnet.eos.dfuse.io", os.Getenv("DFUSE_API_KEY"))
 	if err != nil {
 		panic(fmt.Errorf("new dfuse client: %w", err))

@@ -8,13 +8,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
-	"path"
 	"sync"
 	"time"
 
 	pbgraphql "github.com/dfuse-io/client-go/pb/dfuse/graphql/v1"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 )
 
@@ -26,8 +25,29 @@ func WithAuthURL(authURL string) ClientOption {
 	return clientOptionFunc(func(o *clientOptions) { o.authURL = authURL })
 }
 
+// WithGRPCPort is an option that can be used to overidde all heuristics performed by the client
+// to infer the gRPC port to use based on the network.
+func WithGRPCPort(port int) ClientOption {
+	return clientOptionFunc(func(o *clientOptions) { o.grpcPort = port })
+}
+
+// WithInsecure is an option that can be used to notify the client that it should use
+// an insecure TLS connection for gRPC calls. This option effectively skips all TLS certificate
+// validation normally performed.
+//
+// This option is mutually exclusive with `WithPlainText` and resets it's value to the default
+// value which is `false`.
+func WithInsecure() ClientOption {
+	return clientOptionFunc(func(o *clientOptions) { o.insecure = true; o.plainText = false })
+}
+
+// WithPlainText is an option that can be used to notify the client that it should use
+// a plain text connection (so non-TLS) for gRPC calls.
+//
+// This option is mutually exclusive with `WithInsecure` and resets it's value to the default
+// value which is `false`.
 func WithPlainText() ClientOption {
-	return clientOptionFunc(func(o *clientOptions) { o.plainText = true })
+	return clientOptionFunc(func(o *clientOptions) { o.insecure = false; o.plainText = true })
 }
 
 // WithoutAuthentication disables API token retrieval and management assuming the
@@ -36,11 +56,17 @@ func WithoutAuthentication() ClientOption {
 	return clientOptionFunc(func(o *clientOptions) { o.unauthenticated = true })
 }
 
+func WithLogger(logger *zap.Logger) ClientOption {
+	return clientOptionFunc(func(o *clientOptions) { o.logger = logger })
+}
+
 type Client interface {
 	GetAPITokenInfo(ctx context.Context) (*APITokenInfo, error)
 
 	GraphQLQuery(ctx context.Context, document string, opts ...GraphQLOption) (*pbgraphql.Response, error)
 	GraphQLSubscription(ctx context.Context, document string, opts ...GraphQLOption) (GraphQLStream, error)
+
+	RawGraphQL(ctx context.Context, document string, opts ...GraphQLOption) (pbgraphql.GraphQL_ExecuteClient, error)
 }
 
 func NewClient(network string, apiKey string, opts ...ClientOption) (Client, error) {
@@ -53,38 +79,18 @@ func NewClient(network string, apiKey string, opts ...ClientOption) (Client, err
 	for _, opt := range opts {
 		opt.apply(options)
 	}
-	options.fillDefaults(apiKey)
 
 	if apiKey == "" && !options.unauthenticated {
 		return nil, errors.New(`invalid "apiKey" argument, must be set (if connecting to an unauthenticated instance, use 'WithoutAuthentication' option to allow and empty "apiKey" argument)`)
 	}
 
-	authURL, err := url.Parse(options.authURL)
+	client, err := options.newClient(network, apiKey)
 	if err != nil {
-		return nil, fmt.Errorf("invalid auth URL %q: %w", options.authURL, err)
+		return nil, err
 	}
 
-	authURL.Path = path.Join(authURL.Path, "issue")
-
-	grpcAddr := network + ":443"
-	var grpcDialOptions []grpc.DialOption
-
-	if options.plainText {
-		grpcAddr = network + ":9000"
-		grpcDialOptions = append(grpcDialOptions, insecureDialOption)
-	} else {
-		grpcDialOptions = append(grpcDialOptions, tlsClientDialOption)
-	}
-
-	return &client{
-		apiKey:          apiKey,
-		apiTokenStore:   options.apiTokenStore,
-		authenticated:   !options.unauthenticated,
-		authClient:      &http.Client{Timeout: 10 * time.Second},
-		authIssueURL:    authURL.String(),
-		grpcAddr:        grpcAddr,
-		grpcDialOptions: grpcDialOptions,
-	}, nil
+	client.logger.Debug("created dfuse client instance", zap.Object("client", client))
+	return client, nil
 }
 
 // compile time check to ensure that *client struct implements Client interface
@@ -103,6 +109,27 @@ type client struct {
 	grpcConn          *grpc.ClientConn
 	grpcGraphqlClient pbgraphql.GraphQLClient
 	grpcLock          sync.Mutex
+
+	logger *zap.Logger
+}
+
+func (c *client) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
+	apiTokenStore := "<unset>"
+	if c.apiTokenStore != nil {
+		apiTokenStore = c.apiTokenStore.String()
+	}
+
+	encoder.AddString("api_key", apiKey(c.apiKey).String())
+	encoder.AddString("api_token_store", apiTokenStore)
+	encoder.AddString("auth_issue_url", c.authIssueURL)
+	encoder.AddBool("authenticated", c.authenticated)
+	encoder.AddString("grpc_addr", c.grpcAddr)
+	if c.grpcConn != nil {
+		encoder.AddString("grpc_conn_target", c.grpcConn.Target())
+	}
+	encoder.AddInt("grpc_dial_option_count", len(c.grpcDialOptions))
+
+	return nil
 }
 
 type issueTokenResponse struct {
@@ -116,7 +143,7 @@ func (c *client) GetAPITokenInfo(ctx context.Context) (*APITokenInfo, error) {
 		return nil, fmt.Errorf("api token store get: %w", err)
 	}
 
-	if tokenInfo != nil && !tokenInfo.IsAboutToExpiry() {
+	if tokenInfo != nil && !tokenInfo.IsAboutToExpire() {
 		if traceEnabled {
 			zlog.Debug("token info retrieved from store is set and not about to expiry, returning it", zap.Object("token_info", tokenInfo))
 		}
@@ -189,31 +216,4 @@ func consumeBodyToString(response *http.Response) (string, error) {
 	}
 
 	return string(out), nil
-}
-
-type clientOptions struct {
-	apiTokenStore   APITokenStore
-	authURL         string
-	plainText       bool
-	unauthenticated bool
-}
-
-func (o *clientOptions) fillDefaults(apiKey string) {
-	if o.apiTokenStore == nil {
-		o.apiTokenStore = NewOnDiskAPITokenStore(apiKey)
-	}
-
-	if o.authURL == "" {
-		o.authURL = "https://auth.dfuse.io/v1/auth"
-	}
-}
-
-type ClientOption interface {
-	apply(o *clientOptions)
-}
-
-type clientOptionFunc func(o *clientOptions)
-
-func (f clientOptionFunc) apply(o *clientOptions) {
-	f(o)
 }

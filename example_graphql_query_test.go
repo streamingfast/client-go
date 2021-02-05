@@ -8,7 +8,7 @@ import (
 	dfuse "github.com/dfuse-io/client-go"
 )
 
-func ExampleGraphQLQuery() {
+func ExampleClient_GraphQLQuery() {
 	client, err := dfuse.NewClient("testnet.eos.dfuse.io", os.Getenv("DFUSE_API_KEY"))
 	if err != nil {
 		panic(fmt.Errorf("new dfuse client: %w", err))
@@ -23,5 +23,5 @@ func ExampleGraphQLQuery() {
 	}
 
 	fmt.Println(response.Data, response.Errors)
-	// Output:
+	// Out: test
 }

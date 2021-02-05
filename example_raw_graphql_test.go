@@ -9,14 +9,14 @@ import (
 	dfuse "github.com/dfuse-io/client-go"
 )
 
-func ExampleClient_GraphQLSubscription() {
+func ExampleClient_RawGraphQL() {
 	client, err := dfuse.NewClient("testnet.eos.dfuse.io", os.Getenv("DFUSE_API_KEY"))
 	if err != nil {
 		panic(fmt.Errorf("new dfuse client: %w", err))
 	}
 
 	document := graphqlDocumentFromFile("example_graphql_subscription.graphql")
-	stream, err := client.GraphQLSubscription(context.Background(), document, dfuse.GraphQLVariables{
+	stream, err := client.RawGraphQL(context.Background(), document, dfuse.GraphQLVariables{
 		"query":  "-action:onblock",
 		"cursor": "",
 		"limit":  10,
@@ -38,4 +38,5 @@ func ExampleClient_GraphQLSubscription() {
 
 		fmt.Println(response.Data, response.Errors)
 	}
+	// Output:
 }

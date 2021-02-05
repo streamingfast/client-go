@@ -1,6 +1,7 @@
 package dfuse
 
 import (
+	"crypto/tls"
 	"time"
 
 	"google.golang.org/grpc"
@@ -10,8 +11,9 @@ import (
 )
 
 var balancerDialOption = grpc.WithBalancerName(roundrobin.Name)
-var insecureDialOption = grpc.WithInsecure()
-var tlsClientDialOption = grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, ""))
+var plainTextDialOption = grpc.WithInsecure()
+var insecureTLSDialOption = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{InsecureSkipVerify: true}))
+var secureTLSDialOption = grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, ""))
 var maxCallRecvMsgSize = 1024 * 1024 * 100
 var defaultCallOptions = []grpc.CallOption{
 	grpc.MaxCallRecvMsgSize(maxCallRecvMsgSize),

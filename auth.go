@@ -30,7 +30,7 @@ type APITokenInfo struct {
 	ExpiresAt time.Time
 }
 
-func (t *APITokenInfo) IsAboutToExpiry() bool {
+func (t *APITokenInfo) IsAboutToExpire() bool {
 	if t == nil {
 		return true
 	}
@@ -46,13 +46,15 @@ func (t *APITokenInfo) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
 
 	encoder.AddString("token", "<set>")
 	encoder.AddTime("expires_at", t.ExpiresAt)
-	encoder.AddBool("is_about_to_expiry", t.IsAboutToExpiry())
+	encoder.AddBool("is_about_to_expire", t.IsAboutToExpire())
 	return nil
 }
 
 type APITokenStore interface {
 	Get(ctx context.Context) (*APITokenInfo, error)
 	Set(ctx context.Context, token *APITokenInfo) error
+
+	fmt.Stringer
 }
 
 // InMemoryAPITokenStore simply keeps the token in memory and serves
@@ -80,6 +82,10 @@ func (s *InMemoryAPITokenStore) Set(ctx context.Context, token *APITokenInfo) er
 	return nil
 }
 
+func (s *InMemoryAPITokenStore) String() string {
+	return "In Memory"
+}
+
 // FileAPITokenStore saves the active token as a JSON string in plain text in
 // the given file.
 type FileAPITokenStore struct {
@@ -93,6 +99,10 @@ type FileAPITokenStore struct {
 func NewFileAPITokenStore(filePath string) *FileAPITokenStore {
 	zlog.Info("creating file api token store", zap.String("file_path", filePath))
 	return &FileAPITokenStore{filePath: filePath}
+}
+
+func (s *FileAPITokenStore) String() string {
+	return fmt.Sprintf("File Store %q", s.filePath)
 }
 
 func (s *FileAPITokenStore) Get(ctx context.Context) (*APITokenInfo, error) {
