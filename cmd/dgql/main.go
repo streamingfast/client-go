@@ -12,7 +12,6 @@ import (
 
 	dfuse "github.com/dfuse-io/client-go"
 	"github.com/dfuse-io/logging"
-	"github.com/dfuse-io/tooling/cli"
 	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -156,14 +155,14 @@ func readGraphQLDocument(cmd *cobra.Command, filename string) string {
 		from = "standard input"
 
 		fi, err := os.Stdin.Stat()
-		cli.NoError(err, "unable to stat stdin")
-		cli.Ensure((fi.Mode()&os.ModeCharDevice) != 0, "request document to be read from stdin but it's not readable")
+		noError(err, "unable to stat stdin")
+		ensure((fi.Mode()&os.ModeCharDevice) != 0, "request document to be read from stdin but it's not readable")
 
 		reader = os.Stdin
 	} else if fileExists(filename) {
 		from = fmt.Sprintf("filename %q", filename)
 		reader, err = os.Open(filename)
-		cli.NoError(err, "unable to open file %q", filename)
+		noError(err, "unable to open file %q", filename)
 		defer reader.(*os.File).Close()
 	} else {
 		from = "inline document"
@@ -172,7 +171,7 @@ func readGraphQLDocument(cmd *cobra.Command, filename string) string {
 	}
 
 	document, err := ioutil.ReadAll(reader)
-	cli.NoError(err, "unable to read GraphQL document from %s", from)
+	noError(err, "unable to read GraphQL document from %s", from)
 
 	return string(document)
 }
@@ -236,6 +235,23 @@ func ensureArgument(cmd *cobra.Command, condition bool, message string, args ...
 		cmd.Help()
 		os.Exit(1)
 	}
+}
+
+func ensure(condition bool, message string, args ...interface{}) {
+	if !condition {
+		noError(fmt.Errorf(message, args...), "invalid arguments")
+	}
+}
+
+func noError(err error, message string, args ...interface{}) {
+	if err != nil {
+		quit(message+": "+err.Error(), args...)
+	}
+}
+
+func quit(message string, args ...interface{}) {
+	fmt.Printf(message+"\n", args...)
+	os.Exit(1)
 }
 
 func fileExists(filename string) bool {
