@@ -62,7 +62,7 @@ func main() {
 		zlog = logging.NewSimpleLogger("dgql", "github.com/dfuse-io/client-go/cmd/dgql")
 	}
 
-	flagAPIKey = cmd.PersistentFlags().StringP("api-key", "a", "", "The dfuse API key to use to connect to the endpoint, if empty, assumes the endpoint is not authenticated")
+	flagAPIKey = cmd.PersistentFlags().StringP("api-key", "a", "", "The dfuse API key to use to connect to the endpoint, if empty, checks enviornment variable DFUSE_API_KEY, if it's also empty, assumes the endpoint is not authenticated")
 	flagInsecure = cmd.PersistentFlags().BoolP("insecure", "i", false, "Insecure gRPC TLS connection when connecting to a local endpoint (it skips certification validation)")
 	flagPlainText = cmd.PersistentFlags().BoolP("plain-text", "p", false, "Plain-text gRPC connection (i.e. no TLS) when connecting to a local endpoint")
 	flagRaw = cmd.PersistentFlags().BoolP("raw", "r", false, "Output GraphQL response as JSON untouched meaning you do get the 'data' and 'errors' fields and 'data' contains a string containing a JSON value")
