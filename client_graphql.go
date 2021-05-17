@@ -90,13 +90,13 @@ func (s *graphqlStream) LastErr() error {
 }
 
 func (s *graphqlStream) Recv() (*pbgraphql.Response, error) {
-	if traceEnabled {
+	if tracer.Enabled() {
 		zlog.Debug("about to request to receive a graphql response from gRPC stream")
 	}
 
 	response, err := s.GraphQL_ExecuteClient.Recv()
 	if err == nil {
-		if traceEnabled {
+		if tracer.Enabled() {
 			zlog.Debug("forwarding graphql received response from gRPC stream to consumer")
 		}
 
@@ -107,7 +107,7 @@ func (s *graphqlStream) Recv() (*pbgraphql.Response, error) {
 	// returns io.EOF, if there is a context error, we must forward it here right away
 	ctxErr := s.Context().Err()
 	if ctxErr != nil {
-		zlog.Debug("graphql gRPC stream context has been canceled or timed out, returning its error right away", zap.Error(ctxErr))
+		zlog.Debug("graphql gRPC initial stream context has been canceled or timed out, returning its error right away", zap.Error(ctxErr))
 		return nil, ctxErr
 	}
 
@@ -130,7 +130,7 @@ func (s *graphqlStream) Recv() (*pbgraphql.Response, error) {
 	for {
 		response, err := s.GraphQL_ExecuteClient.Recv()
 		if err == nil {
-			if traceEnabled {
+			if tracer.Enabled() {
 				zlog.Debug("retry succeeded, forwarding graphql received message from gRPC stream to consumer")
 			}
 
@@ -141,7 +141,7 @@ func (s *graphqlStream) Recv() (*pbgraphql.Response, error) {
 		// returns io.EOF, if there is a context error, we must forward it here right away
 		ctxErr := s.Context().Err()
 		if ctxErr != nil {
-			zlog.Debug("graphql gRPC stream context has been canceled or timed out, returning its error right away", zap.Error(ctxErr))
+			zlog.Debug("graphql gRPC retried stream context has been canceled or timed out, returning its error right away", zap.Error(ctxErr))
 			return nil, ctxErr
 		}
 
@@ -241,6 +241,7 @@ func (c *client) prepareGRPCCall(
 		}
 	}
 
+	zlog.Debug("executing graphql request over gRPC", zap.Reflect("request", request))
 	stream, err = graphql.Execute(ctx, request, callOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("graphql execute %s: %w", tag, err)

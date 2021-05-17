@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/dfuse-io/cli"
 	dfuse "github.com/dfuse-io/client-go"
 	"github.com/dfuse-io/logging"
 	"github.com/lithammer/dedent"
@@ -50,19 +51,17 @@ var cmd = &cobra.Command{
 }
 
 var flagAPIKey *string
+var flagAuthURL *string
 var flagInsecure *bool
 var flagPlainText *bool
 var flagRaw *bool
 
-var traceEnabled = logging.IsTraceEnabled("dgql", "github.com/dfuse-io/client-go/cmd/dgql")
 var zlog = zap.NewNop()
+var tracer = logging.ApplicationLogger("dgql", "github.com/dfuse-io/client-go/cmd/dgql", &zlog)
 
 func main() {
-	if traceEnabled {
-		zlog = logging.NewSimpleLogger("dgql", "github.com/dfuse-io/client-go/cmd/dgql")
-	}
-
 	flagAPIKey = cmd.PersistentFlags().StringP("api-key", "a", "", "The dfuse API key to use to connect to the endpoint, if empty, checks enviornment variable DFUSE_API_KEY, if it's also empty, assumes the endpoint is not authenticated")
+	flagAuthURL = cmd.PersistentFlags().String("auth-url", "", "The authentication URL server to use for convert the API key into an API token")
 	flagInsecure = cmd.PersistentFlags().BoolP("insecure", "i", false, "Insecure gRPC TLS connection when connecting to a local endpoint (it skips certification validation)")
 	flagPlainText = cmd.PersistentFlags().BoolP("plain-text", "p", false, "Plain-text gRPC connection (i.e. no TLS) when connecting to a local endpoint")
 	flagRaw = cmd.PersistentFlags().BoolP("raw", "r", false, "Output GraphQL response as JSON untouched meaning you do get the 'data' and 'errors' fields and 'data' contains a string containing a JSON value")
@@ -90,14 +89,22 @@ func dgqlE(cmd *cobra.Command, args []string) error {
 		options = append(options, dfuse.WithoutAuthentication())
 	}
 
-	client, err := dfuse.NewClient(config.Endpoint, config.APIKey, options...)
-	if err != nil {
-		return fmt.Errorf("unable to create dfuse client: %w", err)
+	if config.AuthURL != "" {
+		options = append(options, dfuse.WithAuthURL(config.AuthURL))
 	}
+
+	client, err := dfuse.NewClient(config.Endpoint, config.APIKey, options...)
+	cli.NoError(err, "unable to create dfuse client")
 
 	var variables dfuse.GraphQLVariables
 	if config.Variables != "" {
-		err := json.Unmarshal([]byte(config.Variables), &variables)
+		content := []byte(config.Variables)
+		if cli.FileExists(config.Variables) {
+			content, err = ioutil.ReadFile(config.Variables)
+			cli.NoError(err, "unable to read variables file %q", config.Variables)
+		}
+
+		err := json.Unmarshal(content, &variables)
 		if err != nil {
 			return fmt.Errorf("unable to unmarshal variables: %w", err)
 		}
@@ -178,6 +185,7 @@ func readGraphQLDocument(cmd *cobra.Command, filename string) string {
 
 type config struct {
 	APIKey    string
+	AuthURL   string
 	File      string
 	Variables string
 	Endpoint  string
@@ -207,6 +215,11 @@ func newConfig(cmd *cobra.Command, args []string) *config {
 	out.APIKey = *flagAPIKey
 	if out.APIKey == "" {
 		out.APIKey = os.Getenv("DFUSE_API_KEY")
+	}
+
+	out.AuthURL = *flagAuthURL
+	if out.AuthURL == "" {
+		out.AuthURL = os.Getenv("DFUSE_AUTH_URL")
 	}
 
 	ensureArgument(cmd, out.Endpoint != "", "The endpoint value must be specified")

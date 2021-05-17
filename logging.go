@@ -5,9 +5,5 @@ import (
 	"go.uber.org/zap"
 )
 
-var traceEnabled = logging.IsTraceEnabled("dfuse-client", "github.com/dfuse-io/client-go")
 var zlog = zap.NewNop()
-
-func init() {
-	logging.Register("github.com/dfuse-io/client-go", &zlog)
-}
+var tracer = logging.LibraryLogger("client-go", "github.com/dfuse-io/client-go", &zlog)

@@ -150,7 +150,7 @@ func (c *client) GetAPITokenInfo(ctx context.Context) (*APITokenInfo, error) {
 	}
 
 	if tokenInfo != nil && !tokenInfo.IsAboutToExpire() {
-		if traceEnabled {
+		if tracer.Enabled() {
 			zlog.Debug("token info retrieved from store is set and not about to expire, returning it", zap.Object("token_info", tokenInfo))
 		}
 

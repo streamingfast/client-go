@@ -52,7 +52,7 @@ func (o *clientOptions) newClient(network string, apiKey string) (*client, error
 	}
 
 	if o.authURL == "" {
-		o.authURL = "https://auth.dfuse.io/v1/auth"
+		o.authURL = "https://auth.dfuse.io"
 	}
 
 	logger.Debug("about to create new client with options", zap.Object("options", o))
@@ -62,7 +62,7 @@ func (o *clientOptions) newClient(network string, apiKey string) (*client, error
 		return nil, fmt.Errorf("invalid auth URL %q: %w", o.authURL, err)
 	}
 
-	authURL.Path = path.Join(authURL.Path, "issue")
+	authURL.Path = path.Join(authURL.Path, "v1", "auth", "issue")
 
 	c := &client{
 		apiKey:        apiKey,
