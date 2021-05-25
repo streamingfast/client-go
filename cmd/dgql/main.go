@@ -42,8 +42,8 @@ var cmd = &cobra.Command{
 		ending (or to get immediate feedback of a longer to complete stream).
 	`),
 	Example: cobraExamples(
-		"dgrpc stream_transactions.graphql",
-		"cat stream_transactions.graphql | dgrpc",
+		`dgql testnet.eos.dfuse.io:443 stream_transactions.graphql '{"query":"something:true"}'`,
+		`dgql testnet.eos.dfuse.io:443 stream_transactions.graphql variables_file.json`,
 	),
 	SilenceErrors: false,
 	SilenceUsage:  true,

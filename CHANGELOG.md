@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added go module in `cmd/dgql` command line tool, this reduce dependencies pulled by the library only component.
+
 - Added `dgql` commane line to easily fetch dfuse GraphQL API from your terminal.
 
 - Initial experimental preview of GraphQL over gRPC directly in the client.
