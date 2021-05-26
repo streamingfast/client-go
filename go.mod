@@ -5,7 +5,7 @@ go 1.13
 require (
 	cloud.google.com/go v0.46.3 // indirect
 	github.com/dfuse-io/logging v0.0.0-20210518215502-2d920b2ad1f2
-	github.com/golang/protobuf v1.4.2
+	github.com/dfuse-io/pbgo v0.0.5
 	github.com/stretchr/testify v1.5.1
 	go.uber.org/atomic v1.6.0
 	go.uber.org/zap v1.16.0
