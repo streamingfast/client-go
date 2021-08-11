@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/dfuse-io/logging v0.0.0-20210518215502-2d920b2ad1f2
-	github.com/dfuse-io/pbgo v0.0.6-0.20210429181308-d54fc7723ad3
+	github.com/streamingfast/pbgo v0.0.6-0.20210811160400-7c146c2db8cc // indirect
 	github.com/stretchr/testify v1.5.1
 	go.uber.org/atomic v1.6.0
 	go.uber.org/zap v1.16.0

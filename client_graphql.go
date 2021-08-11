@@ -6,7 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	pbgraphql "github.com/dfuse-io/pbgo/dfuse/graphql/v1"
+	pbgraphql "github.com/streamingfast/pbgo/dfuse/graphql/v1"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
