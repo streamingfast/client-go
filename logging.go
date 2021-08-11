@@ -6,4 +6,4 @@ import (
 )
 
 var zlog = zap.NewNop()
-var tracer = logging.LibraryLogger("client-go", "github.com/dfuse-io/client-go", &zlog)
+var tracer = logging.LibraryLogger("client-go", "github.com/streamingfast/client-go", &zlog)

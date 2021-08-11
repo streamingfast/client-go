@@ -1,18 +1,18 @@
-# dfuse Golang Client Library
+# StreamingFast Golang Client Library
 
-A GraphQL client library to consume dfuse API <https://dfuse.io> ([dfuse docs](https://docs.dfuse.io)).
+A GraphQL client library to consume dfuse API <https://streamingfast.io> ([dfuse docs](https://docs.dfuse.io)).
 
 ## Installation
 
-    go get github.com/dfuse-io/client-go
+    go get github.com/streamingfast/client-go
 
 ## Features
 
 What you get by using this library:
 
-- dfuse API Token issuance & management (auto-refresh, expiration handling, storage, etc)
-- dfuse GraphQL over gRPC API (planned)
-- dfuse gRPC API helpers (planned)
+- StreamingFast API Token issuance & management (auto-refresh, expiration handling, storage, etc)
+- StreamingFast GraphQL over gRPC API (planned)
+- StreamingFast gRPC API helpers (planned)
 
 ## Quick Start
 
@@ -31,7 +31,7 @@ import (
 )
 
 func main() {
-    client, err := dfuse.NewClient("mainnet.eos.dfuse.io", "<Paste your API key here>")
+    client, err := StreamingFast.NewClient("mainnet.eos.dfuse.io", "<Paste your API key here>")
     if err != nil { panic(err) }
 
     tokenInfo, err := client.GetAPITokenInfo(context.Background())
@@ -41,15 +41,24 @@ func main() {
 }
 ```
 
+## References
+
+- [streamingfast Docs](https://docs.dfuse.io)
+
+
 ## Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our Code of Conduct & processes for submitting pull requests, and [CONVENTIONS.md](CONVENTIONS.md) for our coding conventions.
+**Issues and PR in this repo related strictly to the Golang client library.**
+
+Report any protocol-specific issues in their
+[respective repositories](https://github.com/streamingfast/streamingfast#protocols)
+
+**Please first refer to the general
+[StreamingFast contribution guide](https://github.com/streamingfast/streamingfast/blob/master/CONTRIBUTING.md)**,
+if you wish to contribute to this code base.
+
+This codebase uses unit tests extensively, please write and run tests.
 
 ## License
 
 [Apache 2.0](LICENSE)
-
-## References
-
-- [dfuse Docs](https://docs.dfuse.io)
-- [dfuse on Telegram](https://t.me/dfuseAPI) - Community & Team Support

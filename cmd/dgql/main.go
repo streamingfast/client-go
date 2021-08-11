@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/dfuse-io/cli"
-	dfuse "github.com/dfuse-io/client-go"
+	dfuse "github.com/streamingfast/client-go"
 	"github.com/dfuse-io/logging"
 	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
@@ -57,7 +57,7 @@ var flagPlainText *bool
 var flagRaw *bool
 
 var zlog = zap.NewNop()
-var tracer = logging.ApplicationLogger("dgql", "github.com/dfuse-io/client-go/cmd/dgql", &zlog)
+var tracer = logging.ApplicationLogger("dgql", "github.com/streamingfast/client-go/cmd/dgql", &zlog)
 
 func main() {
 	flagAPIKey = cmd.PersistentFlags().StringP("api-key", "a", "", "The dfuse API key to use to connect to the endpoint, if empty, checks enviornment variable DFUSE_API_KEY, if it's also empty, assumes the endpoint is not authenticated")
