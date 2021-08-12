@@ -12,7 +12,7 @@ import (
 
 	"github.com/dfuse-io/cli"
 	dfuse "github.com/streamingfast/client-go"
-	"github.com/dfuse-io/logging"
+	"github.com/streamingfast/logging"
 	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
