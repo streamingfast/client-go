@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	pbgraphql "github.com/streamingfast/pbgo/dfuse/graphql/v1"
+	pbgraphql "github.com/streamingfast/pbgo/sf/graphql/v1"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
