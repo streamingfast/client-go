@@ -10,11 +10,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/dfuse-io/cli"
-	dfuse "github.com/streamingfast/client-go"
-	"github.com/streamingfast/logging"
 	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
+	"github.com/streamingfast/cli"
+	dfuse "github.com/streamingfast/client-go"
+	"github.com/streamingfast/logging"
 	"go.uber.org/zap"
 )
 
