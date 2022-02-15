@@ -3,7 +3,7 @@ module github.com/streamingfast/client-go
 go 1.13
 
 require (
-	github.com/streamingfast/logging v0.0.0-20210811175431-f3b44b61606a
+	github.com/streamingfast/logging v0.0.0-20220214194203-5c70c134fea8
 	github.com/streamingfast/pbgo v0.0.6-0.20211209212750-753f0acb6553
 	github.com/stretchr/testify v1.5.1
 	go.uber.org/atomic v1.6.0
