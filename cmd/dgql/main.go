@@ -56,8 +56,7 @@ var flagInsecure *bool
 var flagPlainText *bool
 var flagRaw *bool
 
-var zlog = zap.NewNop()
-var tracer = logging.ApplicationLogger("dgql", "github.com/streamingfast/client-go/cmd/dgql", &zlog)
+var zlog, tracer = logging.ApplicationLogger("dgql", "github.com/streamingfast/client-go/cmd/dgql", logging.WithDefaultLevel(zap.InfoLevel))
 
 func main() {
 	flagAPIKey = cmd.PersistentFlags().StringP("api-key", "a", "", "The dfuse API key to use to connect to the endpoint, if empty, checks enviornment variable DFUSE_API_KEY, if it's also empty, assumes the endpoint is not authenticated")

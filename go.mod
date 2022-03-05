@@ -1,16 +1,14 @@
 module github.com/streamingfast/client-go
 
-go 1.13
+go 1.16
 
 require (
-	github.com/streamingfast/logging v0.0.0-20220214194203-5c70c134fea8
-	github.com/streamingfast/pbgo v0.0.6-0.20211209212750-753f0acb6553
-	github.com/stretchr/testify v1.5.1
-	go.uber.org/atomic v1.6.0
-	go.uber.org/zap v1.16.0
-	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2 // indirect
-	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-	google.golang.org/grpc v1.35.0
+	github.com/streamingfast/logging v0.0.0-20220304214715-bc750a74b424
+	github.com/streamingfast/pbgo v0.0.6-0.20220304191603-f73822f471ff
+	github.com/stretchr/testify v1.7.0
+	go.uber.org/atomic v1.7.0
+	go.uber.org/zap v1.21.0
+	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
+	google.golang.org/grpc v1.44.0
 	google.golang.org/protobuf v1.27.1
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
