@@ -8,7 +8,8 @@ require (
 	github.com/manifoldco/promptui v0.9.0 // indirect
 	github.com/spf13/cobra v1.3.0
 	github.com/streamingfast/cli v0.0.3
-	github.com/streamingfast/client-go v0.1.0
+	github.com/streamingfast/client-go v0.1.1-0.20220305041752-ea54f92afacd
+	github.com/streamingfast/dgrpc v0.0.0-20210811180351-8646818518b2 // indirect
 	github.com/streamingfast/logging v0.0.0-20220304214715-bc750a74b424
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
