@@ -1,0 +1,4 @@
+# Ignore Go Workspace Files
+*.work*
+
+/cmd/dgql/dgql
