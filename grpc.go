@@ -5,12 +5,10 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/balancer/roundrobin"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 )
 
-var balancerDialOption = grpc.WithBalancerName(roundrobin.Name)
 var plainTextDialOption = grpc.WithInsecure()
 var insecureTLSDialOption = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{InsecureSkipVerify: true}))
 var secureTLSDialOption = grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, ""))
@@ -31,7 +29,6 @@ var keepaliveDialOption = grpc.WithKeepaliveParams(keepalive.ClientParameters{
 
 func newGRPCClient(remoteAddr string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	options := []grpc.DialOption{
-		balancerDialOption,
 		keepaliveDialOption,
 		grpc.WithDefaultCallOptions(defaultCallOptions...),
 	}
